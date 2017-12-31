@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import serial
+from serial.tools import list_ports
 import psutil
 import matplotlib.cm
 import numpy as np
@@ -10,21 +11,31 @@ import colr
 
 # core segments
 segs = {
-        #'sb': np.arange(  0, 15),
-        #'sr': np.arange( 15, 32),
-        #'st': np.arange( 32, 49),
-        #'sl': np.arange( 49, 69),
-        #'br': np.arange( 69,120),
-        #'bt': np.arange(120,159),
-        #'bl': np.arange(159,211),
-        #'bb': np.arange(211,251),
-        'aa': np.arange(0, 353)
+        'fr': np.arange(  0, 50), # moving up
+        'fl': np.arange( 50, 100), # moving down
+        'sf': np.arange(100, 150),
+        'st': np.arange(150, 194),
+        'sr': np.arange(194, 244),
+        'sb': np.arange(244, 284),
+        'br': np.arange(284, 319),
+        'bl': np.arange(319, 354)
         }
+
 total_leds = sum([len(v) for v in segs.values()])
+print(total_leds)
 
 # segment regions
-#segs['s'] = np.hstack([segs['sb'], segs['sr'], segs['st'], segs['sl']])
-#segs['b'] = np.hstack([segs['br'], segs['bt'], segs['bl'], segs['bb']])
+segs['aa'] = np.hstack([s for s in segs.values()])
+
+def find_device(hint="Arduino"):
+    device = None
+    ports = list_ports.comports()
+    for p in ports:
+        if hint in p.description:
+            device = p
+            print(f"Found {p}")
+            break
+    return device.device
 
 def mix(a, x, y):
     return x*(1-a)+y*a
@@ -366,24 +377,20 @@ psutil.cpu_times_percent().user
 if __name__ == '__main__':
     debug = len(sys.argv) > 1
 
-    #device = "COM8"#'/dev/ttyACM0'
-    #if not os.path.exists(device):
-    #    print(f"Device doesnt exist: {device}")
-    #    debug = True
-    #    device = None
+    device = find_device()
 
-
-    leds = LEDS("COM8", debug=False)
+    debug = device is None
+    leds = LEDS(device, debug=debug)
 
     anims = [
             #Life(segs['aa']),
-            Pond(segs['aa'], num_waves=20),
+            #Pond(segs['aa'], num_waves=20),
             #CpuRollTail(segs['s']),
             #Sparkle(segs['aa']),
             #WhiteBreath(segs['aa']),
             #CPUTimes(segs['aa'], percpu=True),
             #CpuRollTail(segs['b'], length=15),
-            #WhiteRollTail(segs['aa']),
+            WhiteRollTail(segs['aa']),
             #WhiteRollTail(segs['aa'][::-1]),
             #Perlin(segs['aa']),
             ]
