@@ -10,20 +10,21 @@ import colr
 
 # core segments
 segs = {
-        'sb': np.arange(  0, 15),
-        'sr': np.arange( 15, 32),
-        'st': np.arange( 32, 49),
-        'sl': np.arange( 49, 69),
-        'br': np.arange( 69,120),
-        'bt': np.arange(120,159),
-        'bl': np.arange(159,211),
-        'bb': np.arange(211,251),
+        #'sb': np.arange(  0, 15),
+        #'sr': np.arange( 15, 32),
+        #'st': np.arange( 32, 49),
+        #'sl': np.arange( 49, 69),
+        #'br': np.arange( 69,120),
+        #'bt': np.arange(120,159),
+        #'bl': np.arange(159,211),
+        #'bb': np.arange(211,251),
+        'aa': np.arange(0, 353)
         }
 total_leds = sum([len(v) for v in segs.values()])
 
 # segment regions
-segs['s'] = np.hstack([segs['sb'], segs['sr'], segs['st'], segs['sl']])
-segs['b'] = np.hstack([segs['br'], segs['bt'], segs['bl'], segs['bb']])
+#segs['s'] = np.hstack([segs['sb'], segs['sr'], segs['st'], segs['sl']])
+#segs['b'] = np.hstack([segs['br'], segs['bt'], segs['bl'], segs['bb']])
 
 def mix(a, x, y):
     return x*(1-a)+y*a
@@ -177,8 +178,8 @@ class Perlin:
         speed = (psutil.cpu_percent() / 100) * 0.9 + 0.8
         v = np.array([noise.pnoise2(x/50, self.t, repeatx=len(self.indices)) for x in range(len(self.indices))])
         v = (v-v.min()) / (v.max() - v.min())
-        #colors = np.array(matplotlib.cm.hsv(v)[:,:3] * 255).astype('int')
-        colors = np.array([mix(vv, np.array([255,0,0]), np.array([0,255,0])) for vv in v]).astype('int')
+        colors = np.array(matplotlib.cm.hsv(v)[:,:3] * 255).astype('int')
+        #colors = np.array([mix(vv, np.array([255,0,0]), np.array([0,255,0])) for vv in v]).astype('int')
         self.t += dt * speed
         return colors
 
@@ -365,32 +366,29 @@ psutil.cpu_times_percent().user
 if __name__ == '__main__':
     debug = len(sys.argv) > 1
 
-    device = '/dev/ttyACM0'
-    if not os.path.exists(device):
-        print(f"Device doesnt exist: {device}")
-        debug = True
-        device = None
+    #device = "COM8"#'/dev/ttyACM0'
+    #if not os.path.exists(device):
+    #    print(f"Device doesnt exist: {device}")
+    #    debug = True
+    #    device = None
 
 
-    leds = LEDS(device, debug=debug)
+    leds = LEDS("COM8", debug=False)
 
     anims = [
-            #Life(segs['b']),
-            Pond(segs['b'], num_waves=12),
+            #Life(segs['aa']),
+            Pond(segs['aa'], num_waves=20),
             #CpuRollTail(segs['s']),
-            #Sparkle(segs['b']),
-            #WhiteBreath(segs['b']),
-            CPUTimes(segs['s'], percpu=True),
+            #Sparkle(segs['aa']),
+            #WhiteBreath(segs['aa']),
+            #CPUTimes(segs['aa'], percpu=True),
             #CpuRollTail(segs['b'], length=15),
-            #WhiteRollTail(segs['b']),
-            #WhiteRollTail(segs['bl'][::-1]),
-            #WhiteRollTail(segs['bt']),
-            #WhiteRollTail(segs['bb'][::-1]),
-            #WhiteRollTail(segs['br']),
-            #Perlin(segs['b']),
+            #WhiteRollTail(segs['aa']),
+            #WhiteRollTail(segs['aa'][::-1]),
+            #Perlin(segs['aa']),
             ]
 
-    blend = False
+    blend = True
 
     t = time.monotonic()
 
