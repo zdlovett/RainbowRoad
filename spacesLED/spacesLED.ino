@@ -72,7 +72,7 @@ void updateBuffer(){
 
 void updateStrip(){
   for(int i=0; i<NUM_LEDS; i++){
-    strip.setPixelColor(i, strip.Color(inbuf[i*3], inbuf[i*3+1], inbuf[i*3+2]));
+    strip.setPixelColor(i, strip.Color(inbuf[i*3]-1, inbuf[i*3+1]-1, inbuf[i*3+2]-1));
   }
   strip.show();
 }

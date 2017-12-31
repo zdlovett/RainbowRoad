@@ -11,21 +11,24 @@ import colr
 
 # core segments
 segs = {
-        'fr': np.arange(  0, 50), # moving up
+        'fr': np.arange(  0,  50), # moving up
         'fl': np.arange( 50, 100), # moving down
         'sf': np.arange(100, 150),
         'st': np.arange(150, 194),
-        'sr': np.arange(194, 244),
-        'sb': np.arange(244, 284),
-        'br': np.arange(284, 319),
-        'bl': np.arange(319, 354)
+        'sr': np.arange(194, 243),
+        'sb': np.arange(243, 284),
+        'br': np.arange(284, 317),
+        'bl': np.arange(317, 354)
         }
 
 total_leds = sum([len(v) for v in segs.values()])
 print(total_leds)
 
 # segment regions
-segs['aa'] = np.hstack([s for s in segs.values()])
+segs['all'] = np.hstack([s for s in segs.values()])
+segs['side'] = np.hstack( [segs['st'], segs['sr'], segs['sb'], segs['sf']] )
+segs['front'] = np.hstack( [ segs['fl'], segs['fr'] ] ) 
+segs['bottom'] = np.hstack( [ segs['br'], segs['bl'] ] )
 
 def find_device(hint="Arduino"):
     device = None
@@ -150,22 +153,7 @@ class RainbowRoll:
 
     def update(self, dt):
         self.colors = np.roll(self.colors, 3)
-        return self.colors.flatten()
-
-class RainbowPulse:
-    def __init__(self, indices):
-        self.indices = indices
-        self.num_leds = len(indices)
-        steps = list(np.linspace(0, 1, 100))
-        self.steps = steps + steps[::-1]
-        self.i = 0
-
-    def update(self, dt):
-        colors = (np.array(matplotlib.cm.jet(self.steps[self.i])[:3] * self.num_leds) * 255).astype('int')
-        self.i += 1
-        if self.i >= len(self.steps):
-            self.i = 0
-        return colors.flatten()
+        return self.colors
 
 class WhiteBreath:
     def __init__(self, indices):
@@ -180,17 +168,22 @@ class WhiteBreath:
         return np.array(colors).reshape(-1,3)
 
 class Perlin:
-    def __init__(self, indices):
+    def __init__(self, indices, mode='rgb'):
         self.indices = indices
-        self.speed = 1
+        self.speed = 0.5
         self.t = 0
+        self.mode = mode
 
     def update(self, dt):
-        speed = (psutil.cpu_percent() / 100) * 0.9 + 0.8
-        v = np.array([noise.pnoise2(x/50, self.t, repeatx=len(self.indices)) for x in range(len(self.indices))])
+        speed = (psutil.cpu_percent() / 100) * 0.9 + 0.25
+        v = np.array([noise.pnoise2(x/100, self.t, repeatx=len(self.indices)) for x in range(len(self.indices))])
         v = (v-v.min()) / (v.max() - v.min())
-        colors = np.array(matplotlib.cm.hsv(v)[:,:3] * 255).astype('int')
-        #colors = np.array([mix(vv, np.array([255,0,0]), np.array([0,255,0])) for vv in v]).astype('int')
+        
+        if self.mode == 'rgb':
+            colors = np.array( matplotlib.cm.hsv(v)[:,:3]*255 ).astype('int')
+        elif self.mode == 'murrica':
+            colors = np.array( matplotlib.cm.seismic(v)[:,:3]*255 ).astype('int')
+        
         self.t += dt * speed
         return colors
 
@@ -226,10 +219,10 @@ class Life:
 
         self.last_t = 0
         self.t = time.monotonic()
-        self.step_time = 1.5
+        self.step_time = 0.5#1.5
 
         self.c0 = np.array(self.c1, dtype=float)
-        self.fade_time = 0.5
+        self.fade_time = 0.15
         self.fade = 1
 
     def update(self, dt):
@@ -282,7 +275,7 @@ in time to make sure that the wave looks smooth as
 it moves
 """
 class Wave:
-    def __init__(self, indices, start=0, width=10, speed=30):
+    def __init__(self, indices, start=0, width=10, speed=30): #TODO: Add some color selection for the wave
         self.indices = indices
         self.start = start
         self.num_steps = len(indices)
@@ -347,6 +340,32 @@ class Pond:
 
         return output
 
+class Rain:
+    def __init__(self, indices, reverse=False):
+        pass
+    
+    def update(self, dt):
+        pass
+
+class Raindrop:
+    def __init__(self, indices, start=0, width=10, speed=30, reverse=False):
+        self.indices = indices
+        self.start = start
+        self.num_steps = len(indices)
+        self.speed = speed
+        self.ts = 0
+        self.reversed = reverse
+
+        wave = np.sin(np.linspace(0, np.pi, width)) * 255
+        wave = np.append(wave, np.zeros(self.num_steps - width))
+        
+        self.buffer = np.zeros( (self.num_steps, 3) )
+        self.buffer[:,2] = wave
+
+    def update(self, dt):
+        
+
+        return self.buffer
 
 class CPUTimes:
     def __init__(self, indices, percpu=False):
@@ -383,16 +402,17 @@ if __name__ == '__main__':
     leds = LEDS(device, debug=debug)
 
     anims = [
-            #Life(segs['aa']),
-            #Pond(segs['aa'], num_waves=20),
-            #CpuRollTail(segs['s']),
-            #Sparkle(segs['aa']),
-            #WhiteBreath(segs['aa']),
-            #CPUTimes(segs['aa'], percpu=True),
-            #CpuRollTail(segs['b'], length=15),
-            WhiteRollTail(segs['aa']),
-            #WhiteRollTail(segs['aa'][::-1]),
-            #Perlin(segs['aa']),
+            #Life(segs['all']),
+            #Pond(segs['all'], num_waves=15),
+            #Sparkle(segs['st']),
+            #WhiteBreath(segs['all']),
+            #CPUTimes(segs['all'], percpu=True),
+            #CpuRollTail(segs['all'], length=15),
+            #WhiteRollTail(segs['all'][::-1]),
+            #Perlin(segs['all'], mode='murrica'),
+            #RainbowRoll(segs['side']),
+            #RainbowPulse(segs['side']),
+            Raindrop(segs['side'])
             ]
 
     blend = True
