@@ -38,7 +38,7 @@ def find_device(hint="Arduino"):
             device = p
             print(f"Found {p}")
             break
-    return device.device
+    return device
 
 def mix(a, x, y):
     return x*(1-a)+y*a
@@ -48,7 +48,7 @@ class LEDS:
         self.debug = debug
         self.device = device
         if device is not None:
-            self.device = serial.Serial(device, 2500000)
+            self.device = serial.Serial(device.device, 2500000)
 
         self.gamma8 = [#adjusted to remove 0 from the colors
             1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
@@ -183,7 +183,7 @@ class Perlin:
             colors = np.array( matplotlib.cm.hsv(v)[:,:3]*255 ).astype('int')
         elif self.mode == 'murrica':
             colors = np.array( matplotlib.cm.seismic(v)[:,:3]*255 ).astype('int')
-        
+
         self.t += dt * speed
         return colors
 
@@ -356,16 +356,20 @@ class Raindrop:
         self.ts = 0
         self.reversed = reverse
 
-        wave = np.sin(np.linspace(0, np.pi, width)) * 255
-        wave = np.append(wave, np.zeros(self.num_steps - width))
+        drop = np.sin(np.linspace(0, np.pi/2, width)) * 255
+        drop = np.append(drop, np.zeros(self.num_steps - width))
         
         self.buffer = np.zeros( (self.num_steps, 3) )
-        self.buffer[:,2] = wave
+        self.buffer[:,2] = drop
 
     def update(self, dt):
+        self.ts += dt
+        shift = int(self.ts * self.speed) + self.start
         
+        if self.reversed:
+            shift = 0 - shift
 
-        return self.buffer
+        return np.roll( self.buffer, shift, 0 ) 
 
 class CPUTimes:
     def __init__(self, indices, percpu=False):
@@ -409,7 +413,7 @@ if __name__ == '__main__':
             #CPUTimes(segs['all'], percpu=True),
             #CpuRollTail(segs['all'], length=15),
             #WhiteRollTail(segs['all'][::-1]),
-            #Perlin(segs['all'], mode='murrica'),
+            #Perlin(segs['all']),
             #RainbowRoll(segs['side']),
             #RainbowPulse(segs['side']),
             Raindrop(segs['side'])
