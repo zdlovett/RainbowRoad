@@ -1,5 +1,7 @@
 #include <Adafruit_NeoPixel.h>
 
+#define FEED_TIME 1000
+
 #define PIN 6
 #define NUM_LEDS 353
 
@@ -50,16 +52,28 @@ void startup(){
 unsigned int index = 0; //track the color and led
 void updateBuffer(){
   unsigned char done = 0; //loop until done == 1, which happens either on 0 or index = NUM_LEDS*3
+  unsigned long feedTime = millis();
   while(!done){
     if(Serial.available() > 0){
+      feedTime = millis(); //feed the watchdog
       unsigned char incoming = Serial.read();
-      //Serial.write(incoming);
 
       if(incoming != 0){
         inbuf[index] = incoming;
         index += 1;
       } else {
         index = 0;
+      }
+    }
+    else{
+      if(millis() - feedTime > FEED_TIME){
+
+        //set the inbuf to 1s
+        for(int i=0; i<NUM_LEDS*3; i++){
+          inbuf[i] = 1;
+        }
+        //and signal done
+        done = 1;
       }
     }
 

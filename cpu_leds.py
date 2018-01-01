@@ -397,45 +397,49 @@ class CPUTimes:
 
 psutil.cpu_times_percent().user
 
+class Show:
+    def __init__(self, segs):
+        self.segs = segs
+        
+        device = find_device()
+
+        debug = device is None
+        self.leds = LEDS(device, debug=debug)
+        self.anims = [ Perlin(segs['all']) ]
+        self.run()
+
+    def run(self):
+        blend = True
+        t = time.monotonic()
+
+        while True:
+            dt = time.monotonic() - t
+            t  = time.monotonic()
+            colors = np.zeros((total_leds,3), dtype='float64')
+            for a in self.anims:
+                c = a.update(dt)
+                if blend:
+                    colors[a.indices] += c
+                else:
+                    has_color = (c > 0).sum(axis=1) > 0
+                    colors[a.indices[has_color]] = c[has_color]
+            self.leds.send(colors)
+
+            e = time.monotonic()
+            if e-t < 0.01:
+                time.sleep( 0.01 - (e-t))
+            buffer = self.update(dt)
+
+    def update(self, dt):
+        raise NotImplementedError
+
+class RGBShow:
+    def update()
+
 if __name__ == '__main__':
-    debug = len(sys.argv) > 1
+    Show(segs)
 
-    device = find_device()
 
-    debug = device is None
-    leds = LEDS(device, debug=debug)
+    
 
-    anims = [
-            #Life(segs['all']),
-            #Pond(segs['all'], num_waves=15),
-            #Sparkle(segs['st']),
-            #WhiteBreath(segs['all']),
-            #CPUTimes(segs['all'], percpu=True),
-            #CpuRollTail(segs['all'], length=15),
-            #WhiteRollTail(segs['all'][::-1]),
-            #Perlin(segs['all']),
-            #RainbowRoll(segs['side']),
-            #RainbowPulse(segs['side']),
-            Raindrop(segs['side'])
-            ]
-
-    blend = True
-
-    t = time.monotonic()
-
-    while True:
-        dt = time.monotonic() - t
-        t  = time.monotonic()
-        colors = np.zeros((total_leds,3), dtype='float64')
-        for a in anims:
-            c = a.update(dt)
-            if blend:
-                colors[a.indices] += c
-            else:
-                has_color = (c > 0).sum(axis=1) > 0
-                colors[a.indices[has_color]] = c[has_color]
-        leds.send(colors)
-
-        e = time.monotonic()
-        if e-t < 0.01:
-            time.sleep( 0.01 - (e-t))
+    
