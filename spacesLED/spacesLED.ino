@@ -51,8 +51,9 @@ void startup(){
 
 unsigned int index = 0; //track the color and led
 void updateBuffer(){
-  unsigned char done = 0; //loop until done == 1, which happens either on 0 or index = NUM_LEDS*3
+  bool done = false; //loop until done == 1, which happens either on 0 or index = NUM_LEDS*3
   unsigned long feedTime = millis();
+  
   while(!done){
     if(Serial.available() > 0){
       feedTime = millis(); //feed the watchdog
@@ -73,12 +74,15 @@ void updateBuffer(){
           inbuf[i] = 1;
         }
         //and signal done
-        done = 1;
+        done = true;
+
+        //and reset the index
+        index = 0;
       }
     }
 
     if(index == NUM_LEDS*3 - 1){
-      done = 1;
+      done = true;
       index = 0;
     }
   }
