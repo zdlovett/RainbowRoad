@@ -11,7 +11,7 @@ void setup() {
   // put your setup code here, to run once:
   delay(50);
   
-  Serial.begin(2500000);
+  Serial.begin(2000000);
 
   strip.begin();
   strip.show();
