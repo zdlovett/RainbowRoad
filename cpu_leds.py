@@ -404,40 +404,58 @@ class Show:
         device = find_device()
 
         debug = device is None
+        self.num_leds = sum( [len(v) for v in segs.values()] )
         self.leds = LEDS(device, debug=debug)
-        self.anims = [ Perlin(segs['all']) ]
-        self.run()
+        self.anims = [ ]
 
     def run(self):
-        blend = True
         t = time.monotonic()
 
         while True:
             dt = time.monotonic() - t
             t  = time.monotonic()
-            colors = np.zeros((total_leds,3), dtype='float64')
-            for a in self.anims:
-                c = a.update(dt)
-                if blend:
-                    colors[a.indices] += c
-                else:
-                    has_color = (c > 0).sum(axis=1) > 0
-                    colors[a.indices[has_color]] = c[has_color]
-            self.leds.send(colors)
+            
 
             e = time.monotonic()
             if e-t < 0.01:
                 time.sleep( 0.01 - (e-t))
             buffer = self.update(dt)
+            self.leds.send(buffer)
 
     def update(self, dt):
         raise NotImplementedError
 
-class RGBShow:
-    def update()
+class RGBShow(Show):
+    def __init__(self, segs):
+        super().__init__(segs)
+        self.anims = [ Perlin(segs['all']) ]
+        
+
+    def update(self, dt):
+        colors = np.zeros((self.num_leds,3), dtype='float64')
+        for a in self.anims:
+            c = a.update(dt)
+            colors[a.indices] += c
+        
+        return colors
+
+
+class FlashShow(Show):
+    def __init__(self, segs):
+        super().__init__(segs)
+        self.anims = [ Sparkle(segs['all']) ]
+        
+    
+    def update(self, dt):
+        colors = np.zeros( (self.num_leds, 3), dtype='float64' )
+        for a in self.anims:
+            c = a.update(dt)
+            colors[a.indices] += c
+        return colors
 
 if __name__ == '__main__':
-    Show(segs)
+    show = RGBShow(segs)
+    show.run()
 
 
     
