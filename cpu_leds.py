@@ -23,7 +23,7 @@ segs = {
         }
 
 total_leds = sum([len(v) for v in segs.values()])
-print(total_leds)
+print(f"Total number of leds: {total_leds}")
 
 # segment regions
 segs['all'] = np.hstack([s for s in segs.values()])
@@ -49,7 +49,7 @@ class LEDS:
         self.debug = debug
         self.device = device
         if device is not None:
-            self.device = serial.Serial(device.device, 100000)
+            self.device = serial.Serial(device.device, 115200)
 
         self.gamma8 = [#adjusted to remove 0 from the colors
             1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
@@ -72,9 +72,13 @@ class LEDS:
         self.vgam = np.vectorize(lambda c: self.gamma8[c])
 
     def send(self, colors):
+        print( f"total leds:{total_leds}, colorlen:{len(colors)}")
+
         colors = np.clip(colors, 1, 255)
         colors = np.array(colors, dtype='uint8').flatten()
         colors = self.vgam(colors)
+        
+
         while len(colors) < total_leds*3:
             colors = np.append(colors, 1)
 
@@ -86,6 +90,7 @@ class LEDS:
 
         if self.device is not None:
             colors = bytes([0]+list(colors))
+            print(len(colors))
             self.device.write(colors)
             self.device.flush()
 
@@ -427,13 +432,15 @@ class Show:
             dt = time.monotonic() - t
             t  = time.monotonic()
             
+            s = time.monotonic()
             buffer = self.update(dt)
+            s = time.monotonic() - s
+            print(f"update time:{s} for {len(buffer)} bytes")
 
-            e = time.monotonic()
-            if e-t < 0.01:
-                time.sleep( 0.01 - (e-t))
-            
+            s = time.monotonic()
             self.leds.send(buffer)
+            s = time.monotonic() - s
+            print(f"send time:{s}")
 
     def update(self, dt):
         colors = np.zeros((self.num_leds,3), dtype='float64')

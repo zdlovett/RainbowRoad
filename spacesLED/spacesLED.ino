@@ -9,14 +9,12 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, PIN, NEO_GRB + NEO_KHZ800)
 
 void setup() {
   // put your setup code here, to run once:
-  delay(50);
-
-  Serial.begin(1000000);
+  Serial.begin(115200);
 
   strip.begin();
   strip.show();
 
-  startup();
+  //startup();
 }
 
 //char inbuf[NUM_LEDS*3];
@@ -75,7 +73,7 @@ void updateBuffer(){
         s = index % 3;
         switch(s){
           case 0: 
-            r=incoming - 1;
+            r = incoming - 1;
             break;
           case 1:
             g = incoming - 1;
