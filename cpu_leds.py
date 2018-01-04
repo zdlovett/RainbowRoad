@@ -415,11 +415,12 @@ class Show:
             dt = time.monotonic() - t
             t  = time.monotonic()
             
+            buffer = self.update(dt)
 
             e = time.monotonic()
             if e-t < 0.01:
                 time.sleep( 0.01 - (e-t))
-            buffer = self.update(dt)
+            
             self.leds.send(buffer)
 
     def update(self, dt):
