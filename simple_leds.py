@@ -1,30 +1,36 @@
 import time
 import serial
+import noise
 import numpy as np
+import matplotlib
 from cpu_leds import LEDS, find_device
 
 NUM_LEDS = 390
+
+
+def perlin():
+    while True:
+        v = np.array([noise.pnoise2(x/200, time.monotonic()/2 , repeatx=NUM_LEDS) for x in range(NUM_LEDS)])
+        v = (v-v.min()) / (v.max() - v.min())
+        colors = np.array( matplotlib.cm.hsv(v)[:,:3]*255 ).astype('int')
+        yield colors
+
+def solid(color):
+    colors = np.zeros( (NUM_LEDS, 3) )
+    colors[:] = color
+    return colors
 
 def run():
     dev = find_device()
     leds = LEDS(dev)
 
-    colors = np.zeros( (NUM_LEDS, 3) )
-    print(len(colors), colors.shape)
-    colors[:] = ( 0, 255, 0 )
-
     done = False
     while not done:
         try:
             s = time.monotonic()
-
-            t = s * 2 * np.pi / 10
-            color = (0, (np.sin(t)*np.sin(t)*254), 0)
-
-            colors[:] = color            
-            leds.send(colors)
+            colors = next( perlin() )
+            leds.send( colors )
             s = time.monotonic() - s
-            print(f"Sending at {round(1/s, 3)}Hz, color:{color}")
         except KeyboardInterrupt:
             done = True
 
