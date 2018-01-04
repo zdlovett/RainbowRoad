@@ -49,7 +49,7 @@ class LEDS:
         self.debug = debug
         self.device = device
         if device is not None:
-            self.device = serial.Serial(device.device, 115200)
+            self.device = serial.Serial(device.device, 250000)
 
         self.gamma8 = [#adjusted to remove 0 from the colors
             1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
@@ -72,8 +72,6 @@ class LEDS:
         self.vgam = np.vectorize(lambda c: self.gamma8[c])
 
     def send(self, colors):
-        print( f"total leds:{total_leds}, colorlen:{len(colors)}")
-
         colors = np.clip(colors, 1, 255)
         colors = np.array(colors, dtype='uint8').flatten()
         colors = self.vgam(colors)
@@ -90,7 +88,6 @@ class LEDS:
 
         if self.device is not None:
             colors = bytes([0]+list(colors))
-            print(len(colors))
             self.device.write(colors)
             self.device.flush()
 
