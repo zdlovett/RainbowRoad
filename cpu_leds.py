@@ -11,14 +11,15 @@ import colr
 
 # core segments
 segs = {
-        'fr': np.arange(  0,  50), # moving up
-        'fl': np.arange( 50, 100), # moving down
-        'sf': np.arange(100, 150),
-        'st': np.arange(150, 194),
-        'sr': np.arange(194, 243),
-        'sb': np.arange(243, 284),
-        'br': np.arange(284, 317),
-        'bl': np.arange(317, 354)
+        'gp': np.arange(  0,  36),
+        'fr': np.arange( 36,  86), # moving up
+        'fl': np.arange( 86, 136), # moving down
+        'sf': np.arange(136, 186),
+        'st': np.arange(186, 230),
+        'sr': np.arange(230, 277),
+        'sb': np.arange(277, 320),
+        'br': np.arange(320, 353),
+        'bl': np.arange(353, 390)
         }
 
 total_leds = sum([len(v) for v in segs.values()])
@@ -48,7 +49,7 @@ class LEDS:
         self.debug = debug
         self.device = device
         if device is not None:
-            self.device = serial.Serial(device.device, 2000000)
+            self.device = serial.Serial(device.device, 115200)
 
         self.gamma8 = [#adjusted to remove 0 from the colors
             1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,

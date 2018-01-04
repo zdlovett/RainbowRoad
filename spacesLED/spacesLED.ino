@@ -10,8 +10,9 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, PIN, NEO_GRB + NEO_KHZ800)
 void setup() {
   // put your setup code here, to run once:
   delay(50);
-  
-  Serial.begin(2000000);
+
+  Serial.begin(115200);
+  //Serial.begin(2000000);
 
   strip.begin();
   strip.show();
@@ -38,19 +39,20 @@ void startup(){
   }
 
   float t;
-  uint8_t red;
+  uint8_t red, green;
   while(Serial.available() == 0){
     for(uint16_t i=0; i<NUM_LEDS; i++){
       t = millis() / 2000.0;
-      red = ( sin( t ) * sin(t) ) * 255; 
-      strip.setPixelColor(i, strip.Color(red, 0, 255 - red));
+      red = ( sin( t ) * sin(t) ) * 255;
+      green = ( cos( t ) * cos(t) ) * 255;
+      strip.setPixelColor(i, strip.Color(red, green, 255 - red));
     }
     strip.show();
   }
 }
 
-unsigned int index = 0; //track the color and led
-unsigned char r, g, b;
+unsigned int index = 0; //track the led
+unsigned char r, g, b, s;
 
 void updateBuffer(){
   bool done = false; //loop until done == 1, which happens either on 0 or index = NUM_LEDS*3
@@ -71,22 +73,21 @@ void updateBuffer(){
          * 
          */
 
-        char s = incoming % 3;
-
+        s = incoming % 3;
         switch(s){
           case 0: 
             r=incoming - 1;
             break;
           case 1:
-            b = incoming - 1;
+            g = incoming - 1;
             break;
           case 2:
-            g = incoming - 1;
+            b = incoming - 1;
         }
         
         index += 1;
         if(s == 2){
-          strip.setPixelColor(index, strip.Color(r, g, b));
+          strip.setPixelColor( (index / 3), strip.Color(r, g, b));
         }
       } else {
         index = 0;
