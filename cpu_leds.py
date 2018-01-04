@@ -166,7 +166,7 @@ class WhiteBreath:
 
     def update(self, dt):
         millis = (time.time() - self.t) * 1000
-        value = (np.exp(np.sin(millis/2000.0*np.pi)) - 0.36787944)*108.0;
+        value = (np.exp(np.sin(millis/2000.0*np.pi)) - 0.36787944)*108.0
         colors = [value] * self.num_leds * 3
         return np.array(colors).reshape(-1,3)
 

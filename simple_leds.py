@@ -8,6 +8,27 @@ from cpu_leds import LEDS, find_device
 NUM_LEDS = 390
 
 
+"""
+Ideas:
+Warp core:
+pulse that moves in from the top and bottom and then bright 
+at the gpu when it meets in the middle
+
+Rain:
+blue rain down the side, with white flashes at the top,
+blue ripples on the bottom, and soft lighting from the gpu
+
+Voice / sound based something or other
+"""
+
+def breath():
+    colors = np.zeros( (NUM_LEDS, 3))
+    while True:
+        t = time.monotonic()
+        v = (1 - abs( np.sin(t) )) * 255
+        colors[:] = (v,v,v)
+        yield colors
+
 def perlin():
     while True:
         v = np.array([noise.pnoise2(x/200, time.monotonic()/2 , repeatx=NUM_LEDS) for x in range(NUM_LEDS)])
@@ -18,17 +39,18 @@ def perlin():
 def solid(color):
     colors = np.zeros( (NUM_LEDS, 3) )
     colors[:] = color
-    return colors
+    while True:
+        yield colors
 
 def run():
     dev = find_device()
-    leds = LEDS(dev)
+    leds = LEDS(dev, debug=True)
 
     done = False
     while not done:
         try:
             s = time.monotonic()
-            colors = next( perlin() )
+            colors = next( breath() )
             leds.send( colors )
             s = time.monotonic() - s
         except KeyboardInterrupt:
