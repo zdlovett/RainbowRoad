@@ -49,7 +49,7 @@ class LEDS:
         self.debug = debug
         self.device = device
         if device is not None:
-            self.device = serial.Serial(device.device, 200000)
+            self.device = serial.Serial(device.device, 100000)
 
         self.gamma8 = [#adjusted to remove 0 from the colors
             1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
@@ -372,6 +372,17 @@ class Raindrop:
 
         return np.roll( self.buffer, shift, 0 ) 
 
+class Solid:
+    def __init__(self, indices, color):
+        self.indices = indices
+        self.length = len(indices)
+        self.color = color
+
+    def update(self, dt):
+        buffer = np.zeros( (self.length, 3), dtype=np.uint8)
+        buffer[:] = self.color
+        return buffer
+
 class CPUTimes:
     def __init__(self, indices, percpu=False):
         self.indices = indices
@@ -436,10 +447,10 @@ class RGBShow(Show):
         super().__init__(segs)
         self.anims.append( Perlin(segs['all']) )
         
-class WhiteShow(Show):
+class SolidShow(Show):
     def __init__(self, segs):
         super().__init__(segs)
-        self.anims.append( WhiteBreath( segs['all'] ) )
+        self.anims.append( Solid( segs['all'] , (255, 0, 240) ) )
 
 class FlashShow(Show):
     def __init__(self, segs):
@@ -447,7 +458,8 @@ class FlashShow(Show):
         self.anims.append( Sparkle(segs['all']) )
 
 if __name__ == '__main__':
-    show = WhiteShow(segs)
+    show = SolidShow(segs)
+    #show = RGBShow(segs)
     show.run()
 
 

@@ -11,7 +11,7 @@ void setup() {
   // put your setup code here, to run once:
   delay(50);
 
-  Serial.begin(2000000);
+  Serial.begin(1000000);
 
   strip.begin();
   strip.show();
@@ -72,7 +72,7 @@ void updateBuffer(){
          * 
          */
 
-        s = incoming % 3;
+        s = index % 3;
         switch(s){
           case 0: 
             r=incoming - 1;
