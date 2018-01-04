@@ -49,7 +49,7 @@ class LEDS:
         self.debug = debug
         self.device = device
         if device is not None:
-            self.device = serial.Serial(device.device, 115200)
+            self.device = serial.Serial(device.device, 200000)
 
         self.gamma8 = [#adjusted to remove 0 from the colors
             1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
@@ -75,7 +75,7 @@ class LEDS:
         colors = np.clip(colors, 1, 255)
         colors = np.array(colors, dtype='uint8').flatten()
         colors = self.vgam(colors)
-        while len(colors) < 251*3:
+        while len(colors) < total_leds*3:
             colors = np.append(colors, 1)
 
         if self.debug:
@@ -425,38 +425,29 @@ class Show:
             self.leds.send(buffer)
 
     def update(self, dt):
-        raise NotImplementedError
-
-class RGBShow(Show):
-    def __init__(self, segs):
-        super().__init__(segs)
-        self.anims = [ Perlin(segs['all']) ]
-        
-
-    def update(self, dt):
         colors = np.zeros((self.num_leds,3), dtype='float64')
         for a in self.anims:
             c = a.update(dt)
             colors[a.indices] += c
-        
         return colors
 
+class RGBShow(Show):
+    def __init__(self, segs):
+        super().__init__(segs)
+        self.anims.append( Perlin(segs['all']) )
+        
+class WhiteShow(Show):
+    def __init__(self, segs):
+        super().__init__(segs)
+        self.anims.append( WhiteBreath( segs['all'] ) )
 
 class FlashShow(Show):
     def __init__(self, segs):
         super().__init__(segs)
-        self.anims = [ Sparkle(segs['all']) ]
-        
-    
-    def update(self, dt):
-        colors = np.zeros( (self.num_leds, 3), dtype='float64' )
-        for a in self.anims:
-            c = a.update(dt)
-            colors[a.indices] += c
-        return colors
+        self.anims.append( Sparkle(segs['all']) )
 
 if __name__ == '__main__':
-    show = RGBShow(segs)
+    show = WhiteShow(segs)
     show.run()
 
 
