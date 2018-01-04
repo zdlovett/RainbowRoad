@@ -3,7 +3,7 @@
 #define FEED_TIME 1000
 
 #define PIN 6
-#define NUM_LEDS 353
+#define NUM_LEDS 390
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, PIN, NEO_GRB + NEO_KHZ800);
 
@@ -19,7 +19,7 @@ void setup() {
   startup();
 }
 
-char inbuf[NUM_LEDS*3];
+//char inbuf[NUM_LEDS*3];
 
 void loop() {
   updateBuffer();
@@ -50,6 +50,8 @@ void startup(){
 }
 
 unsigned int index = 0; //track the color and led
+unsigned char r, g, b;
+
 void updateBuffer(){
   bool done = false; //loop until done == 1, which happens either on 0 or index = NUM_LEDS*3
   unsigned long feedTime = millis();
@@ -60,8 +62,32 @@ void updateBuffer(){
       unsigned char incoming = Serial.read();
 
       if(incoming != 0){
-        inbuf[index] = incoming;
+        // load in new color values
+        // note that they come in as r0 g0 b0 r1 g1 b1 etc...
+        // so we must make sure that we are indexing them correctly
+        /*
+         * index :: 0 1 2 ! 3 4 5 !
+         * s=i%3 :: 0 1 2 ! 0 1 2 !
+         * 
+         */
+
+        char s = incoming % 3;
+
+        switch(s){
+          case 0: 
+            r=incoming - 1;
+            break;
+          case 1:
+            b = incoming - 1;
+            break;
+          case 2:
+            g = incoming - 1;
+        }
+        
         index += 1;
+        if(s == 2){
+          strip.setPixelColor(index, strip.Color(r, g, b));
+        }
       } else {
         index = 0;
       }
@@ -70,8 +96,9 @@ void updateBuffer(){
       if(millis() - feedTime > FEED_TIME){
 
         //set the inbuf to 1s
-        for(int i=0; i<NUM_LEDS*3; i++){
-          inbuf[i] = 1;
+        for(int i=0; i<NUM_LEDS; i++){
+          //turn off the leds since we are not getting anything over serial
+          strip.setPixelColor(i, strip.Color(0, 0, 0) );
         }
         //and signal done
         done = true;
@@ -89,8 +116,5 @@ void updateBuffer(){
 }
 
 void updateStrip(){
-  for(int i=0; i<NUM_LEDS; i++){
-    strip.setPixelColor(i, strip.Color(inbuf[i*3]-1, inbuf[i*3+1]-1, inbuf[i*3+2]-1));
-  }
   strip.show();
 }
