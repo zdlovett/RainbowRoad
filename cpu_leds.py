@@ -50,6 +50,7 @@ class LEDS:
         self.device = device
         if device is not None:
             self.device = serial.Serial(device.device, 250000)
+            print(self.device)
 
         self.gamma8 = [#adjusted to remove 0 from the colors
             1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
@@ -88,6 +89,7 @@ class LEDS:
 
         if self.device is not None:
             colors = bytes([0]+list(colors))
+            len(colors)
             self.device.write(colors)
             self.device.flush()
 

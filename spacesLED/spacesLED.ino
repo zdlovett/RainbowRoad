@@ -9,19 +9,18 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, PIN, NEO_GRB + NEO_KHZ800)
 
 void setup() {
   // put your setup code here, to run once:
-  Serial.begin(115200);
+  Serial.begin(250000); //note that the baud doesn't do anything on chips with an integrated usb
 
   strip.begin();
   strip.show();
 
-  //startup();
+  startup();
 }
 
 //char inbuf[NUM_LEDS*3];
 
 void loop() {
-  updateBuffer();
-  updateStrip();
+  updateAndShow();
 }
 
 void startup(){
@@ -32,34 +31,23 @@ void startup(){
     b = (127.0 * i) / NUM_LEDS;
     strip.setPixelColor(i, strip.Color(r, 0, b));
     strip.show();
-    delay(50);
-  }
-
-  float t;
-  uint8_t red, green;
-  while(Serial.available() == 0){
-    for(uint16_t i=0; i<NUM_LEDS; i++){
-      t = millis() / 2000.0;
-      red = ( sin( t ) * sin(t) ) * 255;
-      green = ( cos( t ) * cos(t) ) * 255;
-      strip.setPixelColor(i, strip.Color(red, green, 255 - red));
-    }
-    strip.show();
+    //delay(50);
   }
 }
 
 unsigned int index = 0; //track the led
-unsigned char r, g, b, s;
+unsigned char r, g, b, s, incoming;
 
-void updateBuffer(){
+void updateAndShow(){
   bool done = false; //loop until done == 1, which happens either on 0 or index = NUM_LEDS*3
   unsigned long feedTime = millis();
-  
+  unsigned char incoming;
   while(!done){
     if(Serial.available() > 0){
       feedTime = millis(); //feed the watchdog
-      unsigned char incoming = Serial.read();
-
+            
+      incoming = Serial.read();
+      
       if(incoming != 0){
         // load in new color values
         // note that they come in as r0 g0 b0 r1 g1 b1 etc...
@@ -67,7 +55,6 @@ void updateBuffer(){
         /*
          * index :: 0 1 2 ! 3 4 5 !
          * s=i%3 :: 0 1 2 ! 0 1 2 !
-         * 
          */
 
         s = index % 3;
@@ -111,8 +98,6 @@ void updateBuffer(){
       index = 0;
     }
   }
-}
-
-void updateStrip(){
   strip.show();
 }
+
