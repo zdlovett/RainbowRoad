@@ -6,6 +6,8 @@ import matplotlib
 import psutil
 from cpu_leds import LEDS, find_device
 
+#LED colors are G R B order
+
 NUM_LEDS = 390
 
 def breath():
@@ -38,9 +40,9 @@ def cpu_race(length=30):
         speed = int(cpu * 4 + 1)
 
         #set the pulse
-        colors[:length, 0] = (np.arange(length) / length * 255)
-        colors[:length, 1] = (np.arange(length) / length * 255) * (1-cpu)
-        colors[:length, 2] = (np.arange(length) / length * 255) * (1-cpu)
+        colors[:length, 0] = (np.arange(length) / length * 255) * (1-cpu)   # G
+        colors[:length, 1] = (np.arange(length) / length * 255)             # R
+        colors[:length, 2] = (np.arange(length) / length * 255) * (1-cpu)   # B
 
         colors = np.roll(colors, i, 0)
         i += speed
@@ -50,12 +52,14 @@ def run():
     dev = find_device()
     leds = LEDS(dev, debug=False)
 
+
     done = False
     while not done:
         try:
-            s = time.monotonic()
-            for colors in perlin( 0.1 ):
+            for colors in perlin(0.25):
+                s = time.monotonic()
                 leds.send( colors )
+                print( time.monotonic() - s)
         except KeyboardInterrupt:
             done = True
 

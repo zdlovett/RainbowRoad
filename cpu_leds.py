@@ -53,8 +53,8 @@ class LEDS:
             print(self.device)
 
         self.gamma8 = [#adjusted to remove 0 from the colors
-            1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
-            1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+            0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+            0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,
             1,  1,  1,  1,  1,  1,  1,  1,  1,  2,  2,  2,  2,  2,  2,  2,
             2,  3,  3,  3,  3,  3,  3,  3,  4,  4,  4,  4,  4,  5,  5,  5,
             5,  6,  6,  6,  6,  7,  7,  7,  7,  8,  8,  8,  9,  9,  9, 10,
@@ -88,8 +88,7 @@ class LEDS:
             print(out)
 
         if self.device is not None:
-            colors = bytes([0]+list(colors))
-            len(colors)
+            colors = bytes(list(colors))#used to have [0]+list(colors)
             self.device.write(colors)
             self.device.flush()
 
