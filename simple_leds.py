@@ -8,7 +8,7 @@ from cpu_leds import LEDS, find_device
 
 #LED colors are G R B order
 
-NUM_LEDS = 60
+NUM_LEDS = 390
 
 def breath():
     colors = np.zeros( (NUM_LEDS, 3))
@@ -51,13 +51,10 @@ def cpu_race(length=30):
 def run():
     dev = find_device()
     leds = LEDS(dev, debug=False)
-
-
     done = False
     while not done:
         try:
-            for c1, c2 in zip( perlin(0.25), cpu_race(10) ):
-                colors = (c1 + c2) / 2
+            for colors in perlin(0.1):
                 leds.send( colors )
         except KeyboardInterrupt:
             done = True
