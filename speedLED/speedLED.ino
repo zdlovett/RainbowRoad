@@ -138,6 +138,5 @@ void loop() {
       sendColors( colors );
     }
   }
-  
 }
 

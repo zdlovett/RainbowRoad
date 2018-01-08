@@ -6,6 +6,8 @@ import matplotlib
 import psutil
 from cpu_leds import LEDS, find_device
 
+import config
+
 #LED colors are G R B order
 
 NUM_LEDS = 390
@@ -55,9 +57,9 @@ def run():
     colors = np.zeros((NUM_LEDS, 3))
     while not done:
         try:
-            for s1, s2, s3 in zip(cpu_race(seg_len=60, length=10), perlin(seg_len=60, size=50), breath(seg_len=60)):
-                colors[:60] = (s1 + s2*(s3/255)) / 2
-
+            for s1, s2, s3 in zip(cpu_race(seg_len=184, length=10), perlin(size=50), breath()):
+                colors = s2*(s3/255)) / 2
+                colors[136:320] += s1
                 leds.send( colors )
         except KeyboardInterrupt:
             done = True
