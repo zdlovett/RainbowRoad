@@ -57,6 +57,7 @@ def run():
         try:
             for s1, s2, s3 in zip(cpu_race(seg_len=60, length=10), perlin(seg_len=60, size=50), breath(seg_len=60)):
                 colors[:60] = (s1 + s2*(s3/255)) / 2
+
                 leds.send( colors )
         except KeyboardInterrupt:
             done = True
