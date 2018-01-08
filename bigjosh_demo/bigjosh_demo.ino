@@ -344,26 +344,26 @@ uint32_t t = 0;
 void loop() {
 
   // Some example procedures showing how to display to the pixels:
-  t = millis();
-  for(uint8_t i=0; i<200; i++){ 
-    showColor(20,   0,   0); // Red
-    showColor(0,   20,   0);
-    showColor(0,   0,   20);
-  }
-  t = millis() - t;
-  Serial.println( (t) / 600.0 );
+  //t = millis();
+  //for(uint8_t i=0; i<200; i++){ 
+  //  showColor(20,   0,   0); // Red
+    //showColor(0,   20,   0);
+    //showColor(0,   0,   20);
+  //}
+  //t = millis() - t;
+  //Serial.println( (t) / 600.0 );
 
-  //colorWipe(100, 0, 0, 10); // Red
-  //colorWipe(0, 255, 0, 0); // Green
-  //colorWipe(0, 0, 255, 0); // Blue
+  colorWipe(100, 0, 0, 10); // Red
+  colorWipe(0, 255, 0, 0); // Green
+  colorWipe(0, 0, 255, 0); // Blue
   
   // Send a theater pixel chase in...
-  //theaterChase(127, 127, 127, 0); // White
-  //theaterChase(20,   0,   0, 0); // Red
-  //theaterChase(  0,   0, 20, 0); // Blue
+  theaterChase(127, 127, 127, 0); // White
+  theaterChase(20,   0,   0, 0); // Red
+  theaterChase(  0,   0, 20, 0); // Blue
   
-  //rainbowCycle(1000 , 20 , 5 );
-  //detonate( 255 , 255 , 255 , 1000);
+  rainbowCycle(1000 , 20 , 5 );
+  detonate( 255 , 255 , 255 , 1000);
   
   return;
   
