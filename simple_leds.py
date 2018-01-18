@@ -1,3 +1,4 @@
+import os
 import time
 import serial
 import noise
@@ -8,7 +9,11 @@ from cpu_leds import LEDS, find_device
 
 #LED colors are G R B order
 
-NUM_LEDS = 390
+Z = False
+if os.path.exists('zachs_computer'):
+    Z = True
+
+NUM_LEDS = 60 if Z else 390
 
 def breath(seg_len=NUM_LEDS):
     colors = np.zeros( (seg_len, 3))
@@ -30,7 +35,7 @@ def solid(seg_len=NUM_LEDS, color=(255,0,200)):
     colors[:] = color
     while True:
         yield colors
-
+0
 def cpu_race(seg_len=NUM_LEDS, length=30):
     i = 0
     while True:
@@ -53,11 +58,20 @@ def run():
     leds = LEDS(dev, debug=False)
     done = False
     colors = np.zeros((NUM_LEDS, 3))
+
+    if not Z:
+        race_len = 184
+    else:
+        race_len = NUM_LEDS
+
     while not done:
         try:
-            for s1, s2, s3 in zip(cpu_race(seg_len=184, length=10), perlin(size=50), breath()):
-                colors = s2*(s3/255) / 2
-                colors[136:320] += s1
+            for s1, s2 in zip(cpu_race(seg_len=race_len, length=10), perlin(size=50)):
+                colors = s2 / 2
+                if not Z:
+                    colors[136:320] += s1
+                else:
+                    colors += s1
                 leds.send( colors )
         except KeyboardInterrupt:
             done = True
