@@ -9,28 +9,6 @@ import numpy as np
 import noise
 import colr
 
-# core segments
-segs = {
-        'gp': np.arange(  0,  36),
-        'fr': np.arange( 36,  86), # moving up
-        'fl': np.arange( 86, 136), # moving down
-        'sf': np.arange(136, 186),
-        'st': np.arange(186, 230),
-        'sr': np.arange(230, 277),
-        'sb': np.arange(277, 320),
-        'br': np.arange(320, 353),
-        'bl': np.arange(353, 390)
-        }
-
-total_leds = sum([len(v) for v in segs.values()])
-print(f"Total number of leds: {total_leds}")
-
-# segment regions
-segs['all'] = np.hstack([s for s in segs.values()])
-segs['side'] = np.hstack( [segs['st'], segs['sr'], segs['sb'], segs['sf']] )
-segs['front'] = np.hstack( [ segs['fl'], segs['fr'] ] ) 
-segs['bottom'] = np.hstack( [ segs['br'], segs['bl'] ] )
-
 def find_device(hint="Arduino"):
     device = None
     ports = list_ports.comports()
@@ -45,14 +23,15 @@ def mix(a, x, y):
     return x*(1-a)+y*a
 
 class LEDS:
-    def __init__(self, device=None, debug=False):
+    def __init__(self, device=None, debug=False, total_leds=419 ):
         self.debug = debug
+        self.total_leds = total_leds
         self.device = device
         if device is not None:
-            self.device = serial.Serial(device.device, 250000)
+            self.device = serial.Serial(device.device, 3000000)
             print(self.device)
 
-        self.gamma8 = [#adjusted to remove 0 from the colors
+        self.gamma8 = [
             0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
             0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,
             1,  1,  1,  1,  1,  1,  1,  1,  1,  2,  2,  2,  2,  2,  2,  2,
@@ -76,9 +55,9 @@ class LEDS:
         colors = np.clip(colors, 1, 255)
         colors = np.array(colors, dtype='uint8').flatten()
         colors = self.vgam(colors)
-        
 
-        while len(colors) < total_leds*3:
+
+        while len(colors) < self.total_leds*3:
             colors = np.append(colors, 1)
 
         if self.debug:
@@ -88,386 +67,12 @@ class LEDS:
             print(out)
 
         if self.device is not None:
+            #s = time.monotonic()
             colors = bytes(list(colors))#used to have [0]+list(colors)
             self.device.write(colors)
             self.device.flush()
 
-class WhiteRoll:
-    """
-    single white pixel going around
-    """
-    def __init__(self, indices):
-        self.indices = indices
-        self.colors = [0,0,0]*len(indices)
-        self.colors[:3] = [255,255,255]
-        self.colors = np.array(self.colors).reshape(-1,3)
-
-    def update(self, dt):
-        self.colors = np.roll(self.colors, 1, axis=0)
-        return self.colors
-
-class WhiteRollTail:
-    """
-    single white pixel going around with dim tail
-    """
-    def __init__(self, indices, length=50, decay=8):
-        self.indices = indices
-        length = min(len(indices), length)
-
-        self._colors = np.zeros(len(indices))
-        self._colors[:length] = np.power(np.arange(length) / length, decay) * 255
-        self.colors = np.zeros(len(indices)*3)
-        self.colors[0::3] = self._colors
-        self.colors[1::3] = self._colors
-        self.colors[2::3] = self._colors
-
-    def update(self, dt):
-        self.colors = np.roll(self.colors, 3)
-        return self.colors.reshape(-1,3)
-
-class CpuRollTail:
-    """
-    single white pixel going around with dim tail color and speed by cpu percent
-    """
-    def __init__(self, indices, length=50, speed=1):
-        self.indices = indices
-        self.num_leds = len(indices)
-        self.length = length
-        self.speed = speed
-        self.i = 0
-
-    def update(self, dt):
-        cpu = psutil.cpu_percent() / 100
-        self.speed = int(cpu * 4+ 1)
-        _colors = np.zeros(self.num_leds)
-        _colors[:self.length] = np.arange(self.length) / self.length * 255
-        colors = np.zeros(self.num_leds*3)
-        colors[0::3] = _colors
-        colors[1::3] = _colors * (1-cpu)
-        colors[2::3] = _colors * (1-cpu)
-        colors = np.roll(colors, self.i*3)
-        self.i += self.speed
-        return colors.reshape(-1,3)
-
-class RainbowRoll:
-    def __init__(self, indices):
-        self.indices = indices
-        colors = np.arange(len(indices)) / len(indices)
-        self.colors = (matplotlib.cm.jet(colors)[:,:3] * 255).astype('int')
-
-    def update(self, dt):
-        self.colors = np.roll(self.colors, 3)
-        return self.colors
-
-class WhiteBreath:
-    def __init__(self, indices):
-        self.indices = indices
-        self.num_leds = len(indices)
-        self.t = time.time()
-
-    def update(self, dt):
-        millis = (time.time() - self.t) * 1000
-        value = (np.exp(np.sin(millis/2000.0*np.pi)) - 0.36787944)*108.0
-        colors = [value] * self.num_leds * 3
-        return np.array(colors).reshape(-1,3)
-
-class Perlin:
-    def __init__(self, indices, mode='rgb'):
-        self.indices = indices
-        self.speed = 0.5
-        self.t = 0
-        self.mode = mode
-
-    def update(self, dt):
-        speed = (psutil.cpu_percent() / 100) * 0.9 + 0.25
-        v = np.array([noise.pnoise2(x/100, self.t, repeatx=len(self.indices)) for x in range(len(self.indices))])
-        v = (v-v.min()) / (v.max() - v.min())
-        
-        if self.mode == 'rgb':
-            colors = np.array( matplotlib.cm.hsv(v)[:,:3]*255 ).astype('int')
-        elif self.mode == 'murrica':
-            colors = np.array( matplotlib.cm.seismic(v)[:,:3]*255 ).astype('int')
-
-        self.t += dt * speed
-        return colors
-
-class Sparkle:
-    def __init__(self, indices):
-        self.indices = indices
-        self.num_leds = len(indices)
-        self.t = time.monotonic()
-        self.speed = 2
-
-    def update(self, dt):
-        v = np.array([noise.pnoise2(x/60, self.t, repeatx=self.num_leds) for x in range(self.num_leds*3)])
-        #print(np.shape(v))
-        #print(v.min(), v.max())
-
-        v = (v-v.min()) / (v.max() - v.min())
-        v = v**6
-
-        #v = (v+1) / 2
-        colors = np.array(v * 255).astype('uint8')
-        self.t += dt * self.speed
-        return colors.reshape(-1,3)
-
-class Life:
-    def __init__(self, indices):
-        self.indices = indices
-        self.num_leds = len(indices)
-        #seed the board with random cells
-        #self.c1 = np.array([np.random.randint(0,2) for i in range(self.num_leds)])
-        #alt seed for a Sierpinksi Triangle
-        self.c1 = np.zeros(self.num_leds, dtype=float)
-        self.c1[self.num_leds // 2] = 1
-
-        self.last_t = 0
-        self.t = time.monotonic()
-        self.step_time = 0.5#1.5
-
-        self.c0 = np.array(self.c1, dtype=float)
-        self.fade_time = 0.15
-        self.fade = 1
-
-    def update(self, dt):
-        #update the simulation (or not if not enough time has passed)
-        cpu_factor = psutil.cpu_percent() / 100
-        fade_time = self.fade_time * (1.01 - cpu_factor)
-        step_time = self.step_time * (1.01 - cpu_factor)
-
-        #print(fade_time, step_time, cpu_factor)
-
-        self.t += dt
-        if (self.t - self.last_t) > step_time:
-            self.last_t = self.t
-
-            c1 = []
-            for i, c0 in enumerate(self.c1):
-                a = self.c0[i - 1]
-                b = self.c0[i + 1] if i+1 < len(self.c0) else self.c0[-1]
-                c1i = not a != (not b)
-                c1.append( c1i )
-            c1 = np.array(c1)
-            self.c0 = self.c1
-            if np.array_equal(self.c0, c1):#then the game has become static, we need to mix it up.
-                #self.c1 = np.array([np.random.randint(0,2) for i in range(self.num_leds)])
-                self.c1 = c1
-            else:
-                self.c1 = c1
-            self.fade = 0 #reset the change tracker since we just changed
-
-        #calculate the fade levels
-        self.fade += dt / fade_time
-        if self.fade > 1:
-            self.fade = 1
-
-        x = self.fade*6 - 3
-        f = ( 1 / ( 1 + np.e**(-x) ) )
-
-        #print(f"fade:{self.fade}, f:{f}")
-
-        colors = self.c1 * f + self.c0 * (1 - f)
-
-        colors = np.array([colors, colors, colors]).T
-        colors = colors*255
-        return colors
-
-"""
-Generate a wave that will move through the leds
-and fade over time. Output should be smoothly ramped
-in time to make sure that the wave looks smooth as
-it moves
-"""
-class Wave:
-    def __init__(self, indices, start=0, width=10, speed=30): #TODO: Add some color selection for the wave
-        self.indices = indices
-        self.start = start
-        self.num_steps = len(indices)
-        self.speed = speed
-        self.ts = 0
-
-        wave = np.sin(np.linspace(0, np.pi, width)) * 255
-        wave = np.append(wave, np.zeros(self.num_steps - width))
-        peak = np.argmax(wave)
-        wave = np.roll(wave, start - peak)
-        self.buffer = wave
-
-        self.rf = np.random.rand() + 0.5
-        self.gf = np.random.rand() + 0.5
-        self.bf = np.random.rand() + 0.5
-
-    def update(self, dt):
-        if self.ts > 2 * self.num_steps:
-            self.ts = 0
-
-        self.ts += dt * self.speed
-        step = int(self.ts)
-        fade = 1 + (self.ts**2 / (self.num_steps*10))
-        rf = fade * self.rf
-        gf = fade * self.gf
-        bf = fade * self.bf
-
-        wave1 = np.roll(self.buffer, self.start - step)
-        wave2 = np.roll(self.buffer, self.start + step)
-        wave = wave1 + wave2
-
-        return np.array([wave / rf, wave / gf, wave / bf]).T
-
-class Pond:
-    def __init__(self, indices, speed=30, num_waves=5, max_width=50):
-        self.indices = indices
-        self.num_steps = len(indices)
-        self.num_waves = num_waves
-        self.max_width = max_width
-        self.waves = []
-        self.add_wave()
-
-    def add_wave(self):
-        start = np.random.randint(0, self.num_steps)
-        width = np.random.randint(10, self.max_width)
-        wave = Wave(self.indices, width=width, start=start)
-        self.waves.append(wave)
-
-    def update(self, dt):
-        output = np.zeros((self.num_steps,3))
-        waves1 = []
-        for w in self.waves:
-            output = np.add(output, w.update(dt))
-            if w.ts < 1*w.num_steps:
-                waves1.append(w)
-
-        self.waves = waves1
-        if len(self.waves) < self.num_waves:
-            high = (100 - psutil.cpu_percent()) + 1
-            if np.random.randint(0, high) == 0:
-                self.add_wave()
-
-        return output
-
-class Rain:
-    def __init__(self, indices, reverse=False):
-        pass
-    
-    def update(self, dt):
-        pass
-
-class Raindrop:
-    def __init__(self, indices, start=0, width=10, speed=30, reverse=False):
-        self.indices = indices
-        self.start = start
-        self.num_steps = len(indices)
-        self.speed = speed
-        self.ts = 0
-        self.reversed = reverse
-
-        drop = np.sin(np.linspace(0, np.pi/2, width)) * 255
-        drop = np.append(drop, np.zeros(self.num_steps - width))
-        
-        self.buffer = np.zeros( (self.num_steps, 3) )
-        self.buffer[:,2] = drop
-
-    def update(self, dt):
-        self.ts += dt
-        shift = int(self.ts * self.speed) + self.start
-        
-        if self.reversed:
-            shift = 0 - shift
-
-        return np.roll( self.buffer, shift, 0 ) 
-
-class Solid:
-    def __init__(self, indices, color):
-        self.indices = indices
-        self.length = len(indices)
-        self.color = color
-
-    def update(self, dt):
-        buffer = np.zeros( (self.length, 3), dtype=np.uint8)
-        buffer[:] = self.color
-        return buffer
-
-class CPUTimes:
-    def __init__(self, indices, percpu=False):
-        self.indices = indices
-        self.percpu = percpu
-
-    def update(self, dt):
-        if self.percpu:
-            p = psutil.cpu_times_percent(percpu=True)
-            leds_per_cpu = int(len(self.indices) / len(p))
-            assert leds_per_cpu >= 1.0
-            colors = []
-            for pp in p:
-                colors += [pp.system, pp.user, pp.idle]*leds_per_cpu
-            while len(colors) < len(self.indices)*3:
-                colors += colors[-3:]
-            return np.array(colors).reshape(-1,3)
-        else:
-            p = psutil.cpu_times_percent()
-            r = p.system
-            g = p.user
-            b = p.idle
-            colors = np.array([r,g,b]*len(self.indices)).reshape(-1,3)
-        return colors
-
-psutil.cpu_times_percent().user
-
-class Show:
-    def __init__(self, segs):
-        self.segs = segs
-        
-        device = find_device()
-
-        debug = device is None
-        self.num_leds = sum( [len(v) for v in segs.values()] )
-        self.leds = LEDS(device, debug=debug)
-        self.anims = [ ]
-
-    def run(self):
-        t = time.monotonic()
-
-        while True:
-            dt = time.monotonic() - t
-            t  = time.monotonic()
-            
-            s = time.monotonic()
-            buffer = self.update(dt)
-            s = time.monotonic() - s
-            print(f"update time:{s} for {len(buffer)} bytes")
-
-            s = time.monotonic()
-            self.leds.send(buffer)
-            s = time.monotonic() - s
-            print(f"send time:{s}")
-
-    def update(self, dt):
-        colors = np.zeros((self.num_leds,3), dtype='float64')
-        for a in self.anims:
-            c = a.update(dt)
-            colors[a.indices] += c
-        return colors
-
-class RGBShow(Show):
-    def __init__(self, segs):
-        super().__init__(segs)
-        self.anims.append( Perlin(segs['all']) )
-        
-class SolidShow(Show):
-    def __init__(self, segs):
-        super().__init__(segs)
-        self.anims.append( Solid( segs['all'] , (255, 0, 240) ) )
-
-class FlashShow(Show):
-    def __init__(self, segs):
-        super().__init__(segs)
-        self.anims.append( Sparkle(segs['all']) )
-
-if __name__ == '__main__':
-    show = SolidShow(segs)
-    #show = RGBShow(segs)
-    show.run()
-
-
-    
-
-    
+            # wait for the ack: TODO make this handle timeouts correctly
+            #rsp = self.device.read(3)
+            #s = time.monotonic() - s
+            #print(f'Send took: {s}')

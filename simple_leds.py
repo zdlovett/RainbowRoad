@@ -9,11 +9,16 @@ from cpu_leds import LEDS, find_device
 
 #LED colors are G R B order
 
+D = False
 Z = False
 if os.path.exists('zachs_computer'):
     Z = True
 
-NUM_LEDS = 60 if Z else 390
+if os.path.exists('debug'):
+    D = True
+
+NUM_LEDS = 60 if Z else 403 + 16
+print(f'{NUM_LEDS}')
 
 def breath(seg_len=NUM_LEDS):
     colors = np.zeros( (seg_len, 3))
@@ -23,10 +28,10 @@ def breath(seg_len=NUM_LEDS):
         colors[:] = (v,v,v)
         yield colors
 
-def perlin(seg_len=NUM_LEDS, speed=1, size=200):
+def perlin(seg_len=NUM_LEDS, speed=0.5, size=200):
     while True:
         v = np.array([noise.pnoise2(x/size, time.monotonic() * speed , repeatx=seg_len) for x in range(seg_len)])
-        v = (v-v.min()) / (v.max() - v.min())
+        v = ( v-v.min() ) / (v.max() - v.min())
         colors = np.array( matplotlib.cm.hsv(v)[:,:3]*255 ).astype('int')
         yield colors
 
@@ -35,7 +40,7 @@ def solid(seg_len=NUM_LEDS, color=(255,0,200)):
     colors[:] = color
     while True:
         yield colors
-0
+
 def cpu_race(seg_len=NUM_LEDS, length=30):
     i = 0
     while True:
@@ -54,25 +59,39 @@ def cpu_race(seg_len=NUM_LEDS, length=30):
         yield colors
 
 def run():
-    dev = find_device()
-    leds = LEDS(dev, debug=False)
+    dev = find_device(hint='FT231X')
+    leds = LEDS(dev, debug=D)
     done = False
-    colors = np.zeros((NUM_LEDS, 3))
 
-    if not Z:
-        race_len = 184
-    else:
-        race_len = NUM_LEDS
+    updates = 0
+    last_update = 0
+    last_debug = time.monotonic()
+
+    rate_period = 0.01
+
+    animation = iter(perlin(size=50))
+    #animation = iter(cpu_race())
+    #animation = iter(breath())
 
     while not done:
         try:
-            for s1, s2 in zip(cpu_race(seg_len=race_len, length=10), perlin(size=50)):
-                colors = s2 / 2
-                if not Z:
-                    colors[136:320] += s1
-                else:
-                    colors += s1
-                leds.send( colors )
+            now = time.monotonic()
+            colors = next( animation )
+            leds.send(colors)
+            updates += 1
+
+            # rate limit
+            send_time = time.monotonic() - now
+            if send_time < rate_period:
+                #print(f'sleeping:{rate_period - send_time}')
+                time.sleep(rate_period - send_time)
+
+            # print every second
+            if now - last_debug > 1:
+                print(updates)
+                updates = 0
+                last_debug = now
+
         except KeyboardInterrupt:
             done = True
 
