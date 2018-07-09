@@ -65,7 +65,8 @@ def cpu_race(seg_len=NUM_LEDS, length=30):
         yield colors
 
 def run():
-    dev = find_device(hint='FT231X')
+    #dev = find_device(hint='FT231X')
+    dev = find_device(hint='USB Serial Port')
     leds = LEDS(dev, debug=D)
     done = False
 
@@ -75,7 +76,8 @@ def run():
 
     rate_period = 0.01
 
-    animation = iter(perlin(size=50))
+    # change speed=0.1 to speed=10 for PARTY MODE
+    animation = iter(perlin(speed=0.1, size=100))
     #animation = iter(cpu_race())
     #animation = iter(breath())
 
@@ -83,6 +85,14 @@ def run():
         try:
             now = time.monotonic()
             colors = next( animation )
+            
+            # set the red channel to 0
+            #colors[:, 0] = 0
+            #colors[:, 1] //= 2 # set the green channel to half of what it would be
+
+            # reduce the brigntness a bit (divide by 3 and multiply by 2)
+            colors = (colors // 3) * 2
+
             leds.send(colors)
             updates += 1
 
@@ -94,7 +104,7 @@ def run():
 
             # print every second
             if now - last_debug > 1:
-                print(updates)
+                #print(updates)
                 updates = 0
                 last_debug = now
 
