@@ -75,8 +75,8 @@ def run():
 
     rate_period = 0.01
 
-    #animation = iter(perlin(size=50))
-    animation = iter(cpu_race())
+    animation = iter(perlin(size=50))
+    #animation = iter(cpu_race())
     #animation = iter(breath())
 
     while not done:
