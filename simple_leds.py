@@ -5,6 +5,7 @@ import noise
 import numpy as np
 import matplotlib
 import psutil
+from collections import namedtuple
 from cpu_leds import LEDS, find_device
 
 #LED colors are G R B order
@@ -17,8 +18,13 @@ if os.path.exists('zachs_computer'):
 if os.path.exists('debug'):
     D = True
 
-NUM_LEDS = 60 if Z else 403 + 16
-print(f'{NUM_LEDS}')
+NUM_LEDS = 60 if Z else 419
+
+
+SEGS = [
+
+]
+
 
 def breath(seg_len=NUM_LEDS):
     colors = np.zeros( (seg_len, 3))
@@ -69,8 +75,8 @@ def run():
 
     rate_period = 0.01
 
-    animation = iter(perlin(size=50))
-    #animation = iter(cpu_race())
+    #animation = iter(perlin(size=50))
+    animation = iter(cpu_race())
     #animation = iter(breath())
 
     while not done:
