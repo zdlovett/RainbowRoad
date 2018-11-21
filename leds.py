@@ -9,6 +9,8 @@ import numpy as np
 import noise
 import colr
 
+LISTEN_PORT = 8765
+
 def find_device(hint="Arduino"):
     device = None
     ports = list_ports.comports()
@@ -66,7 +68,59 @@ class Leds:
                 out += colr.color('x', fore=tuple(colors[i:i+3]))
 
         if self.device is not None:
-            colors = bytes(list(colors))#used to have [0]+list(colors)
+            colors = bytes(list(colors))
             self.device.write(colors)
             self.device.flush()
 
+
+def service(soc, leds):
+    color_len = leds.total_leds*3
+    buffer = bytearray()
+    done = False
+    while not done:
+        try:
+            incoming = con.recv(1024)
+            if len(incoming) == 0:
+                done = True
+            buffer += incoming
+        except socket.timeout:
+            pass
+        else:
+            if len(buffer) >= color_len:
+                colors = np.frombuffer(buffer[:color_len], dtype='uint8')
+                colors = np.reshape(colors, (-1, 3))
+                leds.send(colors)
+            
+                buffer = buffer[color_len:]
+    print("finished service")
+         
+         
+if __name__ == "__main__":
+    import socket
+    from animations import perlin
+    
+    dev = find_device(hint='USB Serial Port')
+    leds = Leds(dev)
+
+    soc = socket.socket()
+    soc.bind((socket.gethostname(), LISTEN_PORT))
+    soc.settimeout(0.01)
+    soc.listen()
+
+    animation = iter(perlin(speed=0.1, size=200))
+    
+    done = False
+    while not done:
+        try:
+            con, addr = soc.accept()
+            print(f"connected to {addr}")
+            service(con, leds)
+        except KeyboardInterrupt:
+            done = True
+        except socket.timeout:
+            leds.send(next(animation) * 2 / 3)
+            
+
+    
+            
+            
