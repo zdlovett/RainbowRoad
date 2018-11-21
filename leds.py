@@ -22,7 +22,7 @@ def find_device(hint="Arduino"):
 def mix(a, x, y):
     return x*(1-a)+y*a
 
-class LEDS:
+class Leds:
     def __init__(self, device=None, debug=False, total_leds=419 ):
         self.debug = debug
         self.total_leds = total_leds
@@ -64,15 +64,9 @@ class LEDS:
             out = ""
             for i in range(0,len(colors),3):
                 out += colr.color('x', fore=tuple(colors[i:i+3]))
-            print(out)
 
         if self.device is not None:
-            #s = time.monotonic()
             colors = bytes(list(colors))#used to have [0]+list(colors)
             self.device.write(colors)
             self.device.flush()
 
-            # wait for the ack: TODO make this handle timeouts correctly
-            #rsp = self.device.read(3)
-            #s = time.monotonic() - s
-            #print(f'Send took: {s}')

@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib
 import psutil
 from collections import namedtuple
-from cpu_leds import LEDS, find_device
+from leds import Leds, find_device
 
 #LED colors are G R B order
 
@@ -14,11 +14,13 @@ D = False
 Z = False
 if os.path.exists('zachs_computer'):
     Z = True
+    print("on zach's computer")
 
 if os.path.exists('debug'):
     D = True
+    print("turning on debug mode")
 
-NUM_LEDS = 60 if Z else 419
+NUM_LEDS = 100 if Z else 419
 
 
 SEGS = [
@@ -67,7 +69,7 @@ def cpu_race(seg_len=NUM_LEDS, length=30):
 def run():
     #dev = find_device(hint='FT231X')
     dev = find_device(hint='USB Serial Port')
-    leds = LEDS(dev, debug=D)
+    leds = Leds(dev, debug=D, total_leds=NUM_LEDS)
     done = False
 
     updates = 0
