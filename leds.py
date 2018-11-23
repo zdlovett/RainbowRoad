@@ -103,7 +103,7 @@ if __name__ == "__main__":
     leds = Leds(dev)
 
     soc = socket.socket()
-    soc.bind((socket.gethostname(), LISTEN_PORT))
+    soc.bind(("", LISTEN_PORT))
     soc.settimeout(0.01)
     soc.listen()
 
