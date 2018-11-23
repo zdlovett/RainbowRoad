@@ -66,6 +66,12 @@ def cpu_race(seg_len=NUM_LEDS, length=30):
         i += speed
         yield colors
 
+def single(seg_len=NUM_LEDS, offset=0):
+    colors = np.zeros( (seg_len, 3) )
+    colors[0, :] = (220, 10, 200)
+    colors = np.roll(colors, offset, 0)
+    return colors
+
 def run():
     #dev = find_device(hint='FT231X')
     dev = find_device(hint='USB Serial Port')
@@ -87,7 +93,7 @@ def run():
         try:
             now = time.monotonic()
             colors = next( animation )
-            
+
             # set the red channel to 0
             #colors[:, 0] = 0
             #colors[:, 1] //= 2 # set the green channel to half of what it would be

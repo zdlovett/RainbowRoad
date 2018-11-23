@@ -23,9 +23,22 @@ if os.path.exists('debug'):
 NUM_LEDS = 100 if Z else 419
 
 
-SEGS = [
-
-]
+# looking at the case from the front
+SEGS ={
+    'gpu'           : (0, 36),  # front to back
+    'bottom_right'  : (37, 70), # front to back
+    'bottom_left'   : (71, 104), # front to back
+    'front_left'    : (105, 159), # bottom to top
+    'front_right'   : (160, 213), # top to bottom
+    'front_bottom'  : (214, 230), # right to left
+    'side_front'    : (231, 257), # middle to top?
+    'side_top'      : (258, 296), # front to back
+    'side_back'     : (297, 343), # top to bottom
+    'side_bottom'   : (344, 384), # back to front
+    'side_front_2'  : (385, 402), # bottom to middle
+    'fan_center'    : (403, 406), # counter clockwise
+    'fan_rim'       : (407, 419) # counter clockwise
+}
 
 
 def breath(seg_len=NUM_LEDS):
@@ -41,10 +54,10 @@ def perlin(seg_len=NUM_LEDS, speed=0.5, size=200):
         v = np.array([noise.pnoise2(x/size, time.monotonic() * speed , repeatx=seg_len) for x in range(seg_len)])
         v = ( v-v.min() ) / (v.max() - v.min())
         colors = np.array( matplotlib.cm.hsv(v)[:,:3]*255 ).astype('int')
-		
+
 		# reduce the brigntness a bit (divide by 3 and multiply by 2)
         colors = (colors // 3) * 2
-		
+
         yield colors
 
 def solid(seg_len=NUM_LEDS, color=(255,0,200)):
@@ -53,13 +66,66 @@ def solid(seg_len=NUM_LEDS, color=(255,0,200)):
     while True:
         yield colors
 
-def cpu_race(seg_len=NUM_LEDS, length=30):
+def per_seg(color=(220, 10, 200), delay=1):
+    colors = np.zeros( (NUM_LEDS, 3) )
+    last_time = time.monotonic()
+
+    seg = 0
+    segs = [s for s in SEGS.values()]
+
+    while True:
+        csg = segs[seg]
+        colors[ csg[0]:csg[1], : ] = color
+
+        now = time.monotonic()
+        if now - last_time > delay:
+            last_time = now
+            colors[ csg[0]:csg[1], : ] = (0, 0, 0)
+
+            # advance the seg
+            seg += 1
+            if seg >= len(segs):
+                seg = 0
+        yield colors
+
+
+def cylon(seg_len=NUM_LEDS, length=10, rate=10, color=(255, 0, 0), forward=True):
+    "oscilate back and forth"
+    rate = 1/rate # leds per second
+
+    colors = np.zeros( (seg_len, 3) )
+    colors[0:length, :] = color
+    colors[0:length, 0] *= np.sin(np.linspace(0, np.pi, length))
+    colors[0:length, 1] *= np.sin(np.linspace(0, np.pi, length))
+    colors[0:length, 2] *= np.sin(np.linspace(0, np.pi, length))
+
+    center = length // 2
+
+    last_time = time.monotonic()
+
+    while True:
+        now = time.monotonic()
+        if now - last_time > rate:
+            last_time = now
+            if center > seg_len - length:
+                forward = False
+            elif center < 0:
+                forward = True
+
+            if forward:
+                center += 1
+            else:
+                center -= 1
+
+        yield np.roll(colors, center, 0)
+
+def cpu_race(seg_len=NUM_LEDS, length=30, speed=0.1):
     i = 0
     while True:
         colors = np.zeros( (seg_len, 3) )
 
         cpu = psutil.cpu_percent() / 100
-        speed = int(cpu * 4 + 1)
+        cpu = int(cpu * speed + 1)
 
         #set the pulse
         colors[:length, 0] = (np.arange(length) / length * 255) * (1-cpu)   # G
@@ -67,54 +133,12 @@ def cpu_race(seg_len=NUM_LEDS, length=30):
         colors[:length, 2] = (np.arange(length) / length * 255) * (1-cpu)   # B
 
         colors = np.roll(colors, i, 0)
-        i += speed
+        i += cpu
         yield colors
 
-def run():
-    #dev = find_device(hint='FT231X')
-    dev = find_device(hint='USB Serial Port')
-    leds = Leds(dev, debug=D, total_leds=NUM_LEDS)
-    done = False
+def single(seg_len=NUM_LEDS, offset=0):
+    colors = np.zeros( (seg_len, 3) )
+    colors[0, :] = (220, 10, 200)
+    colors = np.roll(colors, offset, 0)
+    return colors
 
-    updates = 0
-    last_update = 0
-    last_debug = time.monotonic()
-
-    rate_period = 0.01
-
-    # change speed=0.1 to speed=10 for PARTY MODE
-    animation = iter(perlin(speed=0.1, size=100))
-    #animation = iter(cpu_race())
-    #animation = iter(breath())
-
-    while not done:
-        try:
-            now = time.monotonic()
-            colors = next( animation )
-            
-            # set the red channel to 0
-            #colors[:, 0] = 0
-            #colors[:, 1] //= 2 # set the green channel to half of what it would be
-
-            
-
-            leds.send(colors)
-            updates += 1
-
-            # rate limit
-            send_time = time.monotonic() - now
-            if send_time < rate_period:
-                #print(f'sleeping:{rate_period - send_time}')
-                time.sleep(rate_period - send_time)
-
-            # print every second
-            if now - last_debug > 1:
-                #print(updates)
-                updates = 0
-                last_debug = now
-
-        except KeyboardInterrupt:
-            done = True
-
-if __name__ == "__main__":
-    run()
